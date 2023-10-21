@@ -60,6 +60,8 @@ def add_exercise(exercise_list, new_day_id):
         print(f"{i + 1}. {exercise_list[i]}")
     print()
 
+    exercise_number = 1
+
     while True:
         try:
             choice = int(input(f"Choose from 1-{str(len(exercise_list))}: "))
@@ -68,14 +70,16 @@ def add_exercise(exercise_list, new_day_id):
 
             exercise_name = exercise_list[choice - 1]
             sets_x_reps = get_user_input_for_exercise(exercise_name, exercise_list == CARDIO_EXERCISES)
-            new_exercise = Exercise(name=exercise_name, sets=sets_x_reps[0], reps=sets_x_reps[1], day_id=new_day_id)
+            new_exercise = Exercise(name=exercise_name, exercise_number=exercise_number, sets=sets_x_reps[0],
+                                    reps=sets_x_reps[1], day_id=new_day_id)
             session.add(new_exercise)
-
+            exercise_number += 1
             break
 
         except ValueError:
             print("Invalid entry, please try again")
         session.commit()
+
 
 def add_workout_program():
     """Allow the user to create a new workout program."""
@@ -85,20 +89,21 @@ def add_workout_program():
 
     new_workout_plan = WorkoutPlan(name=name, duration_weeks=duration_weeks, frequency_days=frequency_days)
     session.add(new_workout_plan)
-    session.commit()
+    session.flush()
 
-    for week_number in range(1, duration_weeks):
+    initial_week = Week(week_number=1, workout_plan_id=new_workout_plan.id)
+    session.add(initial_week)
+    session.flush()
+
+    for week_number in range(1, duration_weeks + 1):
         # Adding the initial week separately so the user only has to input their exercises for one week
         # Data will be copied to other weeks later
-        initial_week = Week(week_number=1, workout_plan_id=new_workout_plan.id)
-        session.add(initial_week)
-        session.commit()
 
         if week_number == 1:
             for day_number in range(1, frequency_days + 1):
                 new_day = Day(day_number=day_number, week_id=initial_week.id)
                 session.add(new_day)
-                session.commit()
+                session.flush()
                 new_day_id = new_day.id
                 while True:
                     print("What type of exercise would you like to add?")
@@ -127,24 +132,23 @@ def add_workout_program():
         else:
             new_week = Week(week_number=week_number, workout_plan_id=new_workout_plan.id)
             session.add(new_week)
-            session.commit()
+            session.flush()
             for day_number in range(1, frequency_days + 1):
                 new_day = Day(day_number=day_number, week_id=new_week.id)
                 session.add(new_day)
-                session.commit()
-                for exercise in range(initial_week.days.exercises):
-                    new_exercise = Exercise(name=exercise.name, sets=exercise.sets, reps=exercise.reps,
+                session.flush()
+                original_day = initial_week.days[day_number-1]
+                for original_exercise in original_day.exercises:
+                    new_exercise = Exercise(name=original_exercise.name, exercise_number=original_exercise.exercise_number, sets=original_exercise.sets, reps=original_exercise.reps,
                                             day_id=new_day.id)
                     session.add(new_exercise)
-                    session.commit()
+                    session.flush()
+    session.commit()
 
 
 def view_workouts():
     """View all saved workout programs."""
     workout_plans = session.query(WorkoutPlan).all()
-    weeks = session.query(Week).all()
-    days = session.query(Day).all()
-    exercises = session.query(Exercise).all()
     if not workout_plans:
         print("No workout programs found.")
         return
@@ -155,13 +159,14 @@ def view_workouts():
 
     choice = int(input(f"Choose from 1-{len(workout_plans)}: "))
     if 1 <= choice <= len(workout_plans):
-        for week in weeks:
+        workout = workout_plans[choice - 1]
+        print(len(workout.weeks))
+        for week in workout.weeks:
             print(f"Week {week.week_number}")
-            for day in days:
+            for day in week.days:
                 print(f"Day {day.day_number}")
-                for exercise in exercises:
+                for exercise in day.exercises:
                     print(f"{exercise.name}: {exercise.sets} x {exercise.reps}")
-
 
 
 def exit():

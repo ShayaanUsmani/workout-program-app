@@ -48,6 +48,7 @@ class Exercise(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
+    exercise_number = Column(Integer, nullable=False)
     sets = Column(Integer, nullable=False)
     reps = Column(Integer, nullable=False)
     exercise_type = Column(Integer, nullable=True)
