@@ -137,12 +137,43 @@ def add_workout_program():
                 new_day = Day(day_number=day_number, week_id=new_week.id)
                 session.add(new_day)
                 session.flush()
-                original_day = initial_week.days[day_number-1]
+                original_day = initial_week.days[day_number - 1]
                 for original_exercise in original_day.exercises:
-                    new_exercise = Exercise(name=original_exercise.name, exercise_number=original_exercise.exercise_number, sets=original_exercise.sets, reps=original_exercise.reps,
+                    new_exercise = Exercise(name=original_exercise.name,
+                                            exercise_number=original_exercise.exercise_number,
+                                            sets=original_exercise.sets, reps=original_exercise.reps,
                                             day_id=new_day.id)
                     session.add(new_exercise)
                     session.flush()
+    session.commit()
+
+
+def full_view(workout):
+    """Shows all weeks and days of a workout program"""
+    for week in workout.weeks:
+        print(f"Week {week.week_number}")
+        for day in week.days:
+            print(f"Day {day.day_number}")
+            for exercise in day.exercises:
+                if exercise.weight:
+                    print(f"{exercise.name}: {exercise.sets} x {exercise.reps} | Weight: {exercise.weight} | Notes: {exercise.notes}")
+                else:
+                    print(f"{exercise.name}: {exercise.sets} x {exercise.reps}")
+
+
+def track_workout(workout):
+    """Let user enter weight and notes for exercises on specified day"""
+    week = int(input(f"Which week are you on?\nChoose from 1-{workout.duration_weeks}: "))
+    day = int(input(f"Which day are you on?\nChoose from 1-{workout.frequency_days}: "))
+    for w in workout.weeks:
+        if w.week_number == week:
+            for d in w.days:
+                if d.day_number == day:
+                    for e in d.exercises:
+                        print(f"{e.name} {e.sets}x{e.reps}")
+                        e.weight = float(input("Weight: "))
+                        e.notes = input("Notes: ")
+                        session.flush()
     session.commit()
 
 
@@ -160,13 +191,16 @@ def view_workouts():
     choice = int(input(f"Choose from 1-{len(workout_plans)}: "))
     if 1 <= choice <= len(workout_plans):
         workout = workout_plans[choice - 1]
-        print(len(workout.weeks))
-        for week in workout.weeks:
-            print(f"Week {week.week_number}")
-            for day in week.days:
-                print(f"Day {day.day_number}")
-                for exercise in day.exercises:
-                    print(f"{exercise.name}: {exercise.sets} x {exercise.reps}")
+        print("1. Full view")
+        print("2. Track workout")
+        choice_view = int(input("Choose from 1-2: "))
+
+        if choice_view == 1:
+            full_view(workout)
+        elif choice_view == 2:
+            track_workout(workout)
+        else:
+            print("Invalid Entry")
 
 
 def exit():

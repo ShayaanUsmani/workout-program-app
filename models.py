@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, Double, ForeignKey
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -56,7 +56,7 @@ class Exercise(Base):
 
     day = relationship('Day', back_populates='exercises')
 
-    weight = Column(Integer)
+    weight = Column(Double)
     notes = Column(String)
 
 Base.metadata.create_all(engine)
